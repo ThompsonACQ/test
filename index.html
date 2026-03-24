@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Firebase App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+
+  <h1>Restaurant Ordering System</h1>
+
+  <div id="user-status" style="display: none; color: green; font-weight: bold;"></div>
+  
+  <div id="auth-section">
+    <h2>Login / Sign Up</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="signup()">Sign Up</button>
+    <button onclick="login()">Login</button>
+  </div>
+
+  <button id="logout-btn" onclick="logout()" style="display: none;">Logout</button>
+
+  <!-- Dashboard - shown when logged in -->
+  <div id="dashboard" style="display: none;">
+    <h2>Menu</h2>
+    <div id="menu-list"></div>
+    
+    <h3>Cart (<span id="cart-count">0</span>)</h3>
+    <div id="cart-items"></div>
+    <button onclick="placeOrder()">Place Order</button>
+    
+    <h3>Your Orders</h3>
+    <div id="orders-list"></div>
+  </div>
+
+
+  <!-- Firebase CDN Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
