@@ -7,13 +7,21 @@ export function initAuth(onUserChange) {
     onAuthStateChanged(auth, async (user) => {
         let role = 'guest';
         if (user) {
-            try {
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists()) {
-                    role = userDoc.data().role || 'customer';
+            // Hardcoded Admin Check per requirements
+            if (user.email === 'admin@thompsons.com') {
+                role = 'admin';
+            } else {
+                try {
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists()) {
+                        role = userDoc.data().role || 'customer';
+                    } else {
+                        role = 'customer';
+                    }
+                } catch (e) {
+                    console.error("Error fetching user role", e);
+                    role = 'customer';
                 }
-            } catch (e) {
-                console.error("Error fetching user role", e);
             }
         }
         onUserChange(user, role);

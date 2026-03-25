@@ -1,170 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Firebase App</title>
+  <title>Thompson's Restaurant - Order Now! 🍔</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
 
-  <!-- Auth Screen -->
-  <div id="auth-view" class="container">
-    <!-- Login Section -->
-    <div id="login-section" class="auth-box">
-      <h1>Welcome Back 🍔</h1>
-      <input type="email" id="login-email" placeholder="Email">
-      <input type="password" id="login-password" placeholder="Password">
-      <button id="login-btn">Login</button>
-      <p class="toggle-text"><a href="#" id="to-forgot">Forgot Password?</a></p>
-      <p class="toggle-text">Don't have an account? <a href="#" id="to-signup">Sign Up</a></p>
-    </div>
-
-    <!-- Reset Password Section -->
-    <div id="reset-section" class="auth-box hidden">
-      <h1>Verify Identity 🔐</h1>
-      <p style="margin-bottom:20px; color:var(--text-light);">Enter your details to receive a reset link.</p>
-      <input type="email" id="reset-email" placeholder="Email">
-      <input type="text" id="reset-name" placeholder="Name">
-      <input type="tel" id="reset-phone" placeholder="Number">
-      <input type="text" id="reset-address" placeholder="Address">
-      <button id="reset-btn">Verify & Send Link</button>
-      <p class="toggle-text">Remember your password? <a href="#" id="to-login-from-reset">Login</a></p>
-    </div>
-
-    <!-- Signup Section -->
-    <div id="signup-section" class="auth-box hidden">
-      <h1>Join Thompson's 🍟</h1>
-      <input type="text" id="signup-name" placeholder="Name">
-      <input type="tel" id="signup-phone" placeholder="Number">
-      <input type="text" id="signup-address" placeholder="Address">
-      <input type="email" id="signup-email" placeholder="Email">
-      <input type="password" id="signup-password" placeholder="Password">
-      <input type="password" id="signup-confirm-password" placeholder="Confirm Password">
-      <input type="password" id="signup-confirm-password-2" placeholder="Confirm Password Again">
-      <button id="signup-btn">Create Account</button>
-      <p class="toggle-text">Already have an account? <a href="#" id="to-login">Login</a></p>
-    </div>
-  </div>
-
   <!-- Dashboard Screen -->
-  <div id="dashboard-view" class="container hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2>Restaurant App</h2>
-      <button id="logout-btn" style="width:auto; background:#333;">Logout</button>
-    </div>
-    
+  <div id="dashboard-view" class="container">
+    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+      <h1>Thompson's c🍔🍔k</h1>
+      <div>
+        <span id="user-display" style="margin-right:15px; color:#555;"></span>
+        <button id="logout-btn" style="width:auto; background:#333; padding:10px 20px;">Logout</button>
+      </div>
+    </header>
+
     <nav>
-      <button id="nav-menu" class="active">Menu</button>
-      <button id="nav-cart">Cart (<span id="cart-count">0</span>)</button>
-      <button id="nav-orders">My Orders</button>
+      <button id="nav-menu" class="active">🍽️ Menu</button>
+      <button id="nav-cart">🛒 Cart (<span id="cart-count">0</span>)</button>
+      <button id="nav-orders">📦 My Orders</button>
     </nav>
 
     <main id="main-content">
       <!-- Content injected here by JS -->
     </main>
-  
-    <!-- Templates for different views can be handled in JS or hidden divs -->
+
     <div id="cart-actions" class="hidden" style="margin-top:20px; text-align:right;">
-      <button id="place-order-btn">Place Order</button>
+      <button id="place-order-btn">Place Order 🚀</button>
     </div>
   </div>
 
   <div id="toast-container"></div>
 
   <script type="module">
-    import { initAuth, login, signup, logoutUser, verifyAndResetPassword } from './js/auth.js';
-    import { loadMenu } from './js/menu.js';
-    import { renderCart, removeFromCart } from './js/cart.js';
-    import { placeOrder, loadOrders } from './js/orders.js';
+    import { initAuth, logoutUser } from './js/auth.js';
+    import { loadMenu, renderCart, placeOrder, loadOrders } from './js/app.js';
     import { seedMenu } from './js/seed.js';
-    import { showToast } from './js/utils.js';
-    import './js/admin-helper.js'; // Temporarily added to help you set up admin
 
-    // DOM Elements
-    const views = {
-      auth: document.getElementById('auth-view'),
-      dash: document.getElementById('dashboard-view'),
-      loginSection: document.getElementById('login-section'),
-      signupSection: document.getElementById('signup-section'),
-      resetSection: document.getElementById('reset-section')
-    };
     const main = document.getElementById('main-content');
     const cartActions = document.getElementById('cart-actions');
+    const userDisplay = document.getElementById('user-display');
 
-    // View Toggles
-    document.getElementById('to-signup').onclick = (e) => {
-      e.preventDefault();
-      views.loginSection.classList.add('hidden');
-      views.signupSection.classList.remove('hidden');
-    };
-    document.getElementById('to-login').onclick = (e) => {
-      e.preventDefault();
-      views.signupSection.classList.add('hidden');
-      views.resetSection.classList.add('hidden');
-      views.loginSection.classList.remove('hidden');
-    };
-    document.getElementById('to-forgot').onclick = (e) => {
-      e.preventDefault();
-      views.loginSection.classList.add('hidden');
-      views.resetSection.classList.remove('hidden');
-    };
-    document.getElementById('to-login-from-reset').onclick = (e) => {
-      e.preventDefault();
-      views.resetSection.classList.add('hidden');
-      views.loginSection.classList.remove('hidden');
-    };
-
-    // Event Listeners
-    document.getElementById('login-btn').onclick = () => {
-      const email = document.getElementById('login-email').value;
-      const pass = document.getElementById('login-password').value;
-      login(email, pass);
-    };
-
-    document.getElementById('signup-btn').onclick = () => {
-      const name = document.getElementById('signup-name').value;
-      const phone = document.getElementById('signup-phone').value;
-      const address = document.getElementById('signup-address').value;
-      const email = document.getElementById('signup-email').value;
-      const pass = document.getElementById('signup-password').value;
-      const confirmPass = document.getElementById('signup-confirm-password').value;
-      const confirmPass2 = document.getElementById('signup-confirm-password-2').value;
-
-      if (!name || !phone || !address || !email || !pass) {
-        showToast("Please fill all fields!", 'error');
-        return;
+    // Auth Protection
+    initAuth(async (user, role) => {
+      if (!user) {
+        window.location.replace('login.html');
+      } else {
+        if (role === 'admin') {
+          window.location.replace('admin.html');
+          return;
+        }
+        userDisplay.textContent = user.email;
+        await seedMenu();
+        setActive('menu');
       }
+    });
 
-      if (pass !== confirmPass || pass !== confirmPass2) {
-        showToast("Passwords do not match!", 'error');
-        return;
-      }
-      signup(email, pass, name, phone, address);
-    };
-
-    document.getElementById('reset-btn').onclick = async () => {
-      const email = document.getElementById('reset-email').value;
-      const name = document.getElementById('reset-name').value;
-      const phone = document.getElementById('reset-phone').value;
-      const address = document.getElementById('reset-address').value;
-
-      if (!email || !name || !phone || !address) {
-        showToast("Please fill all fields!", 'error');
-        return;
-      }
-
-      const success = await verifyAndResetPassword(email, name, phone, address);
-      if (success) {
-        views.resetSection.classList.add('hidden');
-        views.loginSection.classList.remove('hidden');
-      }
-    };
-
-    document.getElementById('logout-btn').onclick = logoutUser;
+    document.getElementById('logout-btn').onclick = () => logoutUser().then(() => window.location.replace('login.html'));
     document.getElementById('place-order-btn').onclick = placeOrder;
 
-    // Navigation logic
     const navs = {
       menu: document.getElementById('nav-menu'),
       cart: document.getElementById('nav-cart'),
@@ -184,8 +83,6 @@
         const div = document.createElement('div'); div.id = 'cart-container'; main.appendChild(div);
         renderCart('cart-container');
         cartActions.classList.remove('hidden');
-        // Rebind dynamic removes
-        div.onclick = (e) => { if(e.target.classList.contains('remove-btn')) removeFromCart(e.target.dataset.idx); renderCart('cart-container'); }
       } else if (viewName === 'orders') {
         const div = document.createElement('div'); div.id = 'orders-container'; main.appendChild(div);
         loadOrders('orders-container');
@@ -193,38 +90,13 @@
     }
 
     Object.keys(navs).forEach(k => navs[k].onclick = () => setActive(k));
-    
-    // Cart Count Listener
+
     document.addEventListener('cart-updated', () => {
-      const cart = JSON.parse(localStorage.getItem('cart')||'[]');
-      document.getElementById('cart-count').textContent = cart.reduce((a,b)=>a+b.qty,0);
-    });
-
-    // Auth State
-    initAuth(async (user, role) => {
-      console.log("Auth state changed:", user ? 'Logged In' : 'Logged Out', "Role:", role);
-      if (user) {
-        if (role === 'admin') {
-          window.location.href = 'admin.html';
-          return;
-        }
-        
-        // Show dashboard immediately
-        views.auth.classList.add('hidden');
-        views.dash.classList.remove('hidden');
-        setActive('menu');
-
-        // Background seeding
-        try {
-          await seedMenu();
-        } catch (e) {
-          console.error("Seeding failed", e);
-        }
-      } else {
-        views.auth.classList.remove('hidden');
-        views.dash.classList.add('hidden');
-      }
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      document.getElementById('cart-count').textContent = cart.reduce((a, b) => a + b.qty, 0);
+      thon
     });
   </script>
 </body>
+
 </html>

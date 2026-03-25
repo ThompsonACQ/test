@@ -329,6 +329,39 @@ select { padding: 8px; border-radius: 6px; border: 1px solid #ddd; }
 .toast.error { background: #d63031; }
 @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
+/* New UI Elements */
+.loading, .empty-cart, .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-light);
+    font-style: italic;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: #f1f2f6;
+    color: var(--text-light);
+}
+
+.status-pending { color: var(--warning); border: 1px solid var(--warning); }
+.status-preparing { color: var(--primary); border: 1px solid var(--primary); }
+.status-completed { color: var(--success); border: 1px solid var(--success); }
+
+.badge {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+/* Auth Pages Specific */
+.toggle-text { margin-top: 15px; }
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .container {
