@@ -97,7 +97,6 @@
     document.addEventListener('cart-updated', () => {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       document.getElementById('cart-count').textContent = cart.reduce((a, b) => a + b.qty, 0);
-      thon
     });
   </script>
 </body>

@@ -286,19 +286,73 @@ tr:last-child td {
 
 .form-group { margin-bottom: 20px; }
 .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-dark); }
-.form-group input, .form-group select {
+input, select, textarea {
     width: 100%;
     padding: 12px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     font-family: 'Poppins', sans-serif;
     background: #fafafa;
+    color: var(--text-dark) !important;
 }
 
-.form-group input:focus, .form-group select:focus {
+input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: var(--gold);
     background: white;
+    color: var(--text-dark) !important;
+}
+
+/* Toggle Button (Modern Animated Hamburger) */
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 2100;
+    background: var(--gold);
+    color: white;
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 8px 15px rgba(212, 175, 55, 0.3);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: var(--transition);
+}
+
+.sidebar-toggle span {
+    display: block;
+    width: 24px;
+    height: 3px;
+    background: white;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+/* Transform to X when active */
+.sidebar-toggle.active span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+.sidebar-toggle.active span:nth-child(2) { opacity: 0; }
+.sidebar-toggle.active span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    z-index: 1050;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
 }
 
 /* Responsive Admin Layout */
@@ -325,44 +379,38 @@ tr:last-child td {
 }
 
 @media (max-width: 768px) {
-    .admin-container {
-        flex-direction: column;
+    .sidebar-toggle {
+        display: flex;
     }
 
     .admin-sidebar {
-        position: relative;
-        width: 100%;
-        height: auto;
-        padding: 15px;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .logo-section {
-        margin-bottom: 0;
-    }
-
-    .admin-nav {
+        position: fixed;
+        top: 0;
+        left: -280px; 
+        width: 280px;
+        height: 100vh;
+        background: var(--bg-dark); /* Keep it dark like desktop */
+        transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        padding: 85px 25px 30px 25px;
+        box-shadow: 15px 0 40px rgba(0,0,0,0.4);
+        z-index: 1100;
         display: flex;
-        gap: 10px;
-        margin-bottom: 0;
+        flex-direction: column;
+        border-right: 1px solid rgba(212, 175, 55, 0.2);
     }
 
-    .admin-nav li {
-        margin-bottom: 0;
+    .admin-sidebar.active {
+        transform: translateX(280px); /* Use transform for better performance */
     }
 
-    .logout-btn {
-        width: auto;
-        margin-top: 0;
-        padding: 8px 15px;
-    }
+    .logo-section h2 { display: block !important; }
+    .admin-nav a span { display: inline !important; }
+    .admin-nav a { text-align: left; padding: 15px 20px; font-size: 1rem; margin-bottom: 5px; }
 
     .admin-content {
         margin-left: 0;
         width: 100%;
-        padding: 20px 15px;
+        padding: 90px 20px 20px 20px;
     }
 
     .stats-grid {
@@ -374,7 +422,7 @@ tr:last-child td {
     }
     
     .modal-content {
-        width: 90%;
+        width: 95%;
         padding: 25px;
     }
 }

@@ -9,10 +9,10 @@
     --accent: #ff4757;
     --success: #00b894;
     --warning: #fdcb6e;
-    --bg: #fafafa;
-    --card-bg: #ffffff;
-    --text: #2d3436; 
-    --text-light: #636e72;
+    --bg: #121212; /* Darker background for auth pages */
+    --card-bg: #1a1a1a;
+    --text: #ffffff; 
+    --text-light: #cccccc;
     --white: #ffffff;
     
     /* UI Variables */
@@ -47,13 +47,12 @@
 
 body { 
     font-family: 'Poppins', sans-serif;
-    background: #000; 
-    color: var(--text); 
-    line-height: 1.6;
-    background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('../images/bg.png');
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('../img/bg-restaurant.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
+    color: var(--text); 
+    line-height: 1.6;
     min-height: 100vh;
 }
 
@@ -65,17 +64,18 @@ body {
 
 .hidden { display: none !important; }
 
-/* Auth - Glassmorphism */
+/* Auth - Premium Dark & Gold Theme */
 .auth-box { 
     max-width: 480px; 
     margin: 60px auto; 
-    background: rgba(255, 255, 255, 0.9); 
-    backdrop-filter: blur(15px);
+    background: linear-gradient(135deg, #1a1a1a, #2c2c2c);
+    color: #ffffff;
+    backdrop-filter: blur(10px);
     padding: 50px 40px; 
-    border-radius: var(--radius-lg); 
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3); 
+    border-radius: 20px; 
+    box-shadow: 0 15px 40px rgba(0,0,0,0.5); 
     text-align: center; 
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(212, 175, 55, 0.3);
     position: relative;
     overflow: hidden;
     animation: fadeIn 0.6s ease-out;
@@ -95,11 +95,12 @@ body {
 }
 
 .auth-box h1 { 
-    color: var(--secondary); 
+    color: #ffffff; 
     margin-bottom: 40px; 
     font-weight: 800; 
     font-size: 2.2rem;
     letter-spacing: -0.5px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 
 input { 
@@ -107,13 +108,14 @@ input {
     width: 100%; 
     margin-bottom: 25px; 
     padding: 16px 20px; 
-    border: 1px solid #e0e0e0; 
+    border: 1px solid rgba(212, 175, 55, 0.3); 
     border-radius: var(--radius-md); 
     box-sizing: border-box; 
     transition: var(--transition);
     font-size: 0.95rem;
     font-family: inherit;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
 }
 
 .toggle-text {
@@ -137,19 +139,20 @@ input {
 input:focus { 
     outline: none; 
     border-color: var(--primary); 
-    background: #fff; 
-    box-shadow: 0 0 0 4px var(--primary-light);
+    background: rgba(255, 255, 255, 0.2); 
+    color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.2);
 }
 
 button { 
     width: 100%; 
     padding: 16px; 
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: white; 
+    background: linear-gradient(135deg, #d4af37, #b8962e);
+    color: #000000; 
     border: none; 
     cursor: pointer; 
-    border-radius: var(--radius-md); 
-    font-weight: 600; 
+    border-radius: 10px; 
+    font-weight: 700; 
     font-family: inherit;
     font-size: 1rem;
     transition: var(--transition); 

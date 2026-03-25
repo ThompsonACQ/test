@@ -4,6 +4,7 @@ import {
     onSnapshot, query, orderBy, addDoc 
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js";
+import { updatePassword } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 import { showToast, formatPrice } from './utils.js';
 import { logoutUser } from './auth.js';
 
@@ -28,13 +29,37 @@ const sections = {
     dashboard: document.getElementById('dashboard-section'),
     menu: document.getElementById('menu-section'),
     orders: document.getElementById('orders-section'),
-    users: document.getElementById('users-section')
+    users: document.getElementById('users-section'),
+    categories: document.getElementById('categories-section'),
+    settings: document.getElementById('settings-section')
 };
+
+// --- Mobile Sidebar Toggle ---
+const sidebar = document.getElementById('admin-sidebar');
+const toggleBtn = document.getElementById('sidebar-toggle');
+const overlay = document.getElementById('sidebar-overlay');
+
+function toggleSidebar() {
+    sidebar.classList.toggle('active');
+    overlay.classList.toggle('active');
+    toggleBtn.classList.toggle('active');
+}
+
+if (toggleBtn) toggleBtn.onclick = toggleSidebar;
+if (overlay) overlay.onclick = toggleSidebar;
 
 document.querySelectorAll('.admin-nav a').forEach(link => {
     link.addEventListener('click', (e) => {
-        e.preventDefault();
+        e.preventDefault(); 
         const target = link.getAttribute('href').replace('#', '');
+        
+        // Hide sidebar on mobile after clicking a link
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+            toggleBtn.classList.remove('active');
+        }
+
         document.querySelectorAll('.admin-nav a').forEach(l => l.classList.remove('active'));
         link.classList.add('active');
         Object.values(sections).forEach(s => s && s.classList.add('hidden'));
@@ -83,6 +108,7 @@ if (menuForm) {
         const priceStr = document.getElementById('item-price').value;
         const price = parseFloat(priceStr);
         const category = document.getElementById('item-cat').value;
+        const description = document.getElementById('item-desc').value.trim();
         const available = document.getElementById('item-available').checked;
         const statusEl = document.getElementById('upload-status');
         
@@ -100,8 +126,10 @@ if (menuForm) {
                 if (statusEl) statusEl.textContent = "Upload successful!";
             }
         } catch (error) {
-            console.error("Image upload failed:", error);
-            alert("Storage Error: " + error.message + ". Item will still be saved.");
+            console.error("Storage Error:", error);
+            // If it's a CORS error, we inform but don't block
+            showToast("Upload failed (Storage CORS). Saving item with emoji instead.", "error");
+            if (statusEl) statusEl.textContent = "Upload failed. Using emoji.";
         }
 
         try {
@@ -109,6 +137,7 @@ if (menuForm) {
                 name,
                 price,
                 category,
+                description,
                 available,
                 image: imageUrl || "🍽️",
                 updatedAt: new Date()
@@ -142,10 +171,11 @@ function renderMenu(snapshot) {
     snapshot.forEach(d => {
         const i = d.data();
         const tr = document.createElement('tr');
-        const isEmoji = i.image && !i.image.includes('http') && i.image.length < 5;
+        const img = i.image || '🍽️';
+        const isEmoji = typeof img === 'string' && !img.includes('http') && img.length < 5;
         const imgHtml = isEmoji 
-            ? `<span style="font-size:1.5rem;">${i.image}</span>`
-            : `<img src="${i.image}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">`;
+            ? `<span style="font-size:1.5rem;">${img}</span>`
+            : `<img src="${img}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">`;
 
         tr.innerHTML = `
             <td>${imgHtml}</td>
@@ -162,6 +192,87 @@ function renderMenu(snapshot) {
     });
 }
 
+// --- Category Management ---
+const catForm = document.getElementById('category-form');
+const catList = document.getElementById('category-list');
+const catSelect = document.getElementById('item-cat');
+
+onSnapshot(collection(db, "categories"), (snapshot) => {
+    if (catList) catList.innerHTML = '';
+    if (catSelect) catSelect.innerHTML = '<option value="">Select Category</option>';
+    
+    // Group categories by type for the dropdown
+    const groups = {};
+
+    snapshot.forEach(doc => {
+        const cat = doc.data();
+        const type = cat.type || 'other';
+
+        // Update List in Categories Page
+        if (catList) {
+            const tag = document.createElement('div');
+            tag.className = 'badge';
+            tag.style.padding = '8px 15px';
+            tag.style.display = 'flex';
+            tag.style.alignItems = 'center';
+            tag.style.gap = '10px';
+            tag.innerHTML = `
+                <small style="opacity:0.7; text-transform:uppercase; font-size:0.6rem;">${type}</small>
+                <strong>${cat.name}</strong> 
+                <span onclick="deleteCategory('${doc.id}')" style="cursor:pointer; color:var(--danger); font-weight:bold;">×</span>
+            `;
+            catList.appendChild(tag);
+        }
+
+        // Build groups for the select
+        if (!groups[type]) groups[type] = [];
+        groups[type].push(cat.name);
+    });
+
+    // Populate Select with optgroups
+    if (catSelect) {
+        Object.keys(groups).sort().forEach(type => {
+            const groupEl = document.createElement('optgroup');
+            groupEl.label = type.toUpperCase();
+            groups[type].sort().forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                groupEl.appendChild(opt);
+            });
+            catSelect.appendChild(groupEl);
+        });
+    }
+
+    if (snapshot.empty && catList) {
+        catList.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">No categories yet. Create your first one above!</p>';
+    }
+});
+
+if (catForm) {
+    catForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('new-cat-name').value.trim();
+        const type = document.getElementById('new-cat-type').value;
+        if (!name) return;
+        try {
+            await addDoc(collection(db, "categories"), { 
+                name: name, 
+                type: type,
+                createdAt: new Date() 
+            });
+            catForm.reset();
+            showToast("Category added!");
+        } catch (e) { showToast(e.message, 'error'); }
+    });
+}
+
+window.deleteCategory = async (id) => {
+    if (confirm("Delete this category? Items using it will remain but won't have a linked category.")) {
+        await deleteDoc(doc(db, "categories", id));
+    }
+};
+
 window.editItem = async (id) => {
     try {
         const d = await getDoc(doc(db, "menuItems", id));
@@ -169,7 +280,8 @@ window.editItem = async (id) => {
         const i = d.data();
         document.getElementById('item-name').value = i.name;
         document.getElementById('item-price').value = i.price;
-        document.getElementById('item-cat').value = i.category;
+        document.getElementById('item-cat').value = i.category || '';
+        document.getElementById('item-desc').value = i.description || '';
         document.getElementById('item-img').value = (i.image && !i.image.includes('http')) ? i.image : '';
         document.getElementById('item-available').checked = i.available !== false;
         menuForm.dataset.editId = id;

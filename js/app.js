@@ -37,6 +37,7 @@ export async function loadMenu(containerId) {
                 ${imgHtml}
                 <div class="menu-info">
                     <h3>${item.name}</h3>
+                    <p style="font-size:0.85rem; color:#777; margin-bottom:10px;">${item.description || ''}</p>
                     <span class="price">${formatPrice(item.price)}</span>
                 </div>
                 <button class="add-btn" data-id="${item.id}">Add to Cart</button>

@@ -9,8 +9,16 @@
 </head>
 <body>
     <div class="admin-container">
+        <!-- Hamburger Button (Mobile Only) -->
+        <button id="sidebar-toggle" class="sidebar-toggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
         <!-- Left Sidebar -->
-        <aside class="admin-sidebar">
+        <aside class="admin-sidebar" id="admin-sidebar">
             <div class="logo-section" style="display:flex; align-items:center;">
                 <img src="img/logo.png" alt="Logo" class="logo-img" style="height:40px; margin-right:10px;">
                 <h2 style="margin:0;">Cook Center</h2>
@@ -20,9 +28,11 @@
                 <li><a href="#menu">🍽️ Manage Menu</a></li>
                 <li><a href="#orders">📦 Orders</a></li>
                 <li><a href="#users">👥 Customers</a></li>
+                <li><a href="#categories">📂 Categories</a></li>
+                <li><a href="#settings">⚙️ Settings</a></li>
             </ul>
             <button id="logout-btn" class="logout-btn">🔴 Logout</button>
-        </div>
+        </aside>
 
         <!-- Main Content -->
         <div class="admin-content">
@@ -85,6 +95,53 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Categories Section -->
+            <div id="categories-section" class="hidden">
+                <h2 class="page-title">Menu Categories</h2>
+                <div class="table-container" style="max-width: 650px;">
+                    <h3>📂 Manage Categories</h3>
+                    <p style="margin-bottom: 20px; color: var(--text-muted); font-size: 0.9rem;">
+                        Create and classify your categories (e.g., Meal vs Beverage).
+                    </p>
+                    <form id="category-form" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                        <input type="text" id="new-cat-name" placeholder="Category Name" required style="flex: 2; min-width: 200px; margin: 0;">
+                        <select id="new-cat-type" required style="flex: 1; min-width: 150px; margin: 0;">
+                            <option value="meal">🍴 Meal</option>
+                            <option value="beverage">🥤 Beverage</option>
+                            <option value="dessert">🍰 Dessert</option>
+                            <option value="snack">🍿 Snack</option>
+                            <option value="other">✨ Other</option>
+                        </select>
+                        <button type="submit" class="btn-gold" style="white-space: nowrap;">Add Category</button>
+                    </form>
+                    <div id="category-list" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div id="settings-section" class="hidden">
+                <h2 class="page-title">Admin Account Settings</h2>
+                <div class="table-container" style="max-width: 500px;">
+                    <h3>🔐 Change Password</h3>
+                    <p style="margin-bottom: 20px; color: var(--text-muted); font-size: 0.9rem;">
+                        For security, please ensure your new password is at least 6 characters long.
+                    </p>
+                    <form id="change-password-form">
+                        <div class="form-group">
+                            <label for="new-password">New Password</label>
+                            <input type="password" id="new-password" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm-new-password">Confirm New Password</label>
+                            <input type="password" id="confirm-new-password" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn-gold" style="width: 100%;">Update Password</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -103,17 +160,19 @@
                 </div>
                 <div class="form-group">
                     <label for="item-cat">Category</label>
-                    <select id="item-cat">
-                        <option value="main">Main Course</option>
-                        <option value="drink">Drink</option>
-                        <option value="dessert">Dessert</option>
+                    <select id="item-cat" required>
+                        <option value="">Select Category</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="item-file">Product Image (Upload or Emoji)</label>
+                    <label for="item-desc">Description</label>
+                    <textarea id="item-desc" rows="3" placeholder="Describe the dish..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="image">Product Image (Upload or Emoji)</label>
                     <div style="display:flex; gap:10px;">
                         <input type="file" id="image" accept="image/*" style="width:auto; margin-bottom:0;">
-                        <input type="text" id="item-img" placeholder="Or use emoji 🍔" style="flex:1; margin-bottom:0;">
+                        <input type="text" id="item-img" aria-label="Emoji Icon" placeholder="Or use emoji 🍔" style="flex:1; margin-bottom:0;">
                     </div>
                     <div id="upload-status" style="font-size:0.8rem; margin-top:5px; color:var(--primary);"></div>
                 </div>

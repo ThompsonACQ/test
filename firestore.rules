@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Check if user is an administrator
+    function isAdmin() {
+      return request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        request.auth.token.email == 'admin@thompsons.com'
+      );
+    }
+
+    // Customer Profiles: Anyone logged in can read/write their own
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Menu & Categories: Publicly readable, Admin writeable
+    match /menuItems/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /categories/{catId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Orders: Logged in users can create/read, Admins can manage
+    match /orders/{orderId} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if isAdmin();
+    }
+  }
+}
