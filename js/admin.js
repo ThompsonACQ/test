@@ -86,7 +86,10 @@ function initAdminListeners() {
             const u = doc.data();
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td>${u.name || 'N/A'}</td>
                 <td>${u.email}</td>
+                <td>${u.phone || 'N/A'}</td>
+                <td><small>${u.address || 'N/A'}</small></td>
                 <td><span class="badge">${u.role}</span></td>
                 <td>${u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
                 <td><button onclick="deleteUser('${doc.id}')" class="btn-sm btn-delete">Delete</button></td>
