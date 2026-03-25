@@ -16,16 +16,32 @@
       <input type="email" id="login-email" placeholder="Email">
       <input type="password" id="login-password" placeholder="Password">
       <button id="login-btn">Login</button>
+      <p class="toggle-text"><a href="#" id="to-forgot">Forgot Password?</a></p>
       <p class="toggle-text">Don't have an account? <a href="#" id="to-signup">Sign Up</a></p>
+    </div>
+
+    <!-- Reset Password Section -->
+    <div id="reset-section" class="auth-box hidden">
+      <h1>Verify Identity 🔐</h1>
+      <p style="margin-bottom:20px; color:var(--text-light);">Enter your details to receive a reset link.</p>
+      <input type="email" id="reset-email" placeholder="Email">
+      <input type="text" id="reset-name" placeholder="Name">
+      <input type="tel" id="reset-phone" placeholder="Number">
+      <input type="text" id="reset-address" placeholder="Address">
+      <button id="reset-btn">Verify & Send Link</button>
+      <p class="toggle-text">Remember your password? <a href="#" id="to-login-from-reset">Login</a></p>
     </div>
 
     <!-- Signup Section -->
     <div id="signup-section" class="auth-box hidden">
       <h1>Join Thompson's 🍟</h1>
-      <input type="text" id="signup-name" placeholder="Full Name">
-      <input type="tel" id="signup-phone" placeholder="Phone Number">
+      <input type="text" id="signup-name" placeholder="Name">
+      <input type="tel" id="signup-phone" placeholder="Number">
+      <input type="text" id="signup-address" placeholder="Address">
       <input type="email" id="signup-email" placeholder="Email">
       <input type="password" id="signup-password" placeholder="Password">
+      <input type="password" id="signup-confirm-password" placeholder="Confirm Password">
+      <input type="password" id="signup-confirm-password-2" placeholder="Confirm Password Again">
       <button id="signup-btn">Create Account</button>
       <p class="toggle-text">Already have an account? <a href="#" id="to-login">Login</a></p>
     </div>
@@ -57,18 +73,21 @@
   <div id="toast-container"></div>
 
   <script type="module">
-    import { initAuth, login, signup, logoutUser } from './js/auth.js';
+    import { initAuth, login, signup, logoutUser, verifyAndResetPassword } from './js/auth.js';
     import { loadMenu } from './js/menu.js';
     import { renderCart, removeFromCart } from './js/cart.js';
     import { placeOrder, loadOrders } from './js/orders.js';
     import { seedMenu } from './js/seed.js';
+    import { showToast } from './js/utils.js';
+    import './js/admin-helper.js'; // Temporarily added to help you set up admin
 
     // DOM Elements
     const views = {
       auth: document.getElementById('auth-view'),
       dash: document.getElementById('dashboard-view'),
       loginSection: document.getElementById('login-section'),
-      signupSection: document.getElementById('signup-section')
+      signupSection: document.getElementById('signup-section'),
+      resetSection: document.getElementById('reset-section')
     };
     const main = document.getElementById('main-content');
     const cartActions = document.getElementById('cart-actions');
@@ -82,6 +101,17 @@
     document.getElementById('to-login').onclick = (e) => {
       e.preventDefault();
       views.signupSection.classList.add('hidden');
+      views.resetSection.classList.add('hidden');
+      views.loginSection.classList.remove('hidden');
+    };
+    document.getElementById('to-forgot').onclick = (e) => {
+      e.preventDefault();
+      views.loginSection.classList.add('hidden');
+      views.resetSection.classList.remove('hidden');
+    };
+    document.getElementById('to-login-from-reset').onclick = (e) => {
+      e.preventDefault();
+      views.resetSection.classList.add('hidden');
       views.loginSection.classList.remove('hidden');
     };
 
@@ -95,9 +125,40 @@
     document.getElementById('signup-btn').onclick = () => {
       const name = document.getElementById('signup-name').value;
       const phone = document.getElementById('signup-phone').value;
+      const address = document.getElementById('signup-address').value;
       const email = document.getElementById('signup-email').value;
       const pass = document.getElementById('signup-password').value;
-      signup(email, pass, name, phone);
+      const confirmPass = document.getElementById('signup-confirm-password').value;
+      const confirmPass2 = document.getElementById('signup-confirm-password-2').value;
+
+      if (!name || !phone || !address || !email || !pass) {
+        showToast("Please fill all fields!", 'error');
+        return;
+      }
+
+      if (pass !== confirmPass || pass !== confirmPass2) {
+        showToast("Passwords do not match!", 'error');
+        return;
+      }
+      signup(email, pass, name, phone, address);
+    };
+
+    document.getElementById('reset-btn').onclick = async () => {
+      const email = document.getElementById('reset-email').value;
+      const name = document.getElementById('reset-name').value;
+      const phone = document.getElementById('reset-phone').value;
+      const address = document.getElementById('reset-address').value;
+
+      if (!email || !name || !phone || !address) {
+        showToast("Please fill all fields!", 'error');
+        return;
+      }
+
+      const success = await verifyAndResetPassword(email, name, phone, address);
+      if (success) {
+        views.resetSection.classList.add('hidden');
+        views.loginSection.classList.remove('hidden');
+      }
     };
 
     document.getElementById('logout-btn').onclick = logoutUser;
@@ -141,15 +202,24 @@
 
     // Auth State
     initAuth(async (user, role) => {
+      console.log("Auth state changed:", user ? 'Logged In' : 'Logged Out', "Role:", role);
       if (user) {
-        await seedMenu(); // Seed if empty
         if (role === 'admin') {
           window.location.href = 'admin.html';
           return;
         }
+        
+        // Show dashboard immediately
         views.auth.classList.add('hidden');
         views.dash.classList.remove('hidden');
         setActive('menu');
+
+        // Background seeding
+        try {
+          await seedMenu();
+        } catch (e) {
+          console.error("Seeding failed", e);
+        }
       } else {
         views.auth.classList.remove('hidden');
         views.dash.classList.add('hidden');

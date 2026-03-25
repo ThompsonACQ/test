@@ -283,3 +283,81 @@ tr:last-child td {
     border-color: var(--gold);
     background: white;
 }
+
+/* Responsive Admin Layout */
+@media (max-width: 992px) {
+    .admin-sidebar {
+        width: 80px;
+        padding: 20px 10px;
+    }
+
+    .logo-section h2, .admin-nav a span {
+        display: none;
+    }
+
+    .admin-nav a {
+        text-align: center;
+        padding: 15px;
+        font-size: 1.2rem;
+    }
+
+    .admin-content {
+        margin-left: 80px;
+        width: calc(100% - 80px);
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-container {
+        flex-direction: column;
+    }
+
+    .admin-sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        padding: 15px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .logo-section {
+        margin-bottom: 0;
+    }
+
+    .admin-nav {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 0;
+    }
+
+    .admin-nav li {
+        margin-bottom: 0;
+    }
+
+    .logout-btn {
+        width: auto;
+        margin-top: 0;
+        padding: 8px 15px;
+    }
+
+    .admin-content {
+        margin-left: 0;
+        width: 100%;
+        padding: 20px 15px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    h2.page-title {
+        font-size: 1.5rem;
+    }
+    
+    .modal-content {
+        width: 90%;
+        padding: 25px;
+    }
+}
