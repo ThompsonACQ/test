@@ -180,13 +180,17 @@ function renderMenu(snapshot) {
             ? `<span style="font-size:1.5rem;">${img}</span>`
             : `<img src="${img}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">`;
 
+        const desc = i.description || '';
+        const displayDesc = desc.length > 30 ? desc.substring(0, 27) + '...' : desc;
+
         tr.innerHTML = `
             <td>${imgHtml}</td>
             <td>${i.name}</td>
             <td>${formatPrice(i.price)}</td>
-            <td>${i.category}</td>
-            <td><span class="status-badge">${i.available ? 'Yes' : 'No'}</span></td>
-            <td>
+            <td>${i.category || 'N/A'}</td>
+            <td><small style="opacity:0.7;">${displayDesc}</small></td>
+            <td><span class="status-badge ${i.available ? 'yes' : 'no'}">${i.available ? 'Yes' : 'No'}</span></td>
+            <td style="white-space:nowrap;">
                 <button onclick="editItem('${d.id}')" class="btn-sm">Edit</button>
                 <button onclick="deleteItem('${d.id}')" class="btn-sm btn-delete">Delete</button>
             </td>
@@ -200,18 +204,28 @@ const catForm = document.getElementById('category-form');
 const catList = document.getElementById('category-list');
 const catSelect = document.getElementById('item-cat');
 
+// --- Visual Category Selection ---
+const categorySelector = document.getElementById('category-selector');
+const hiddenCatInput = document.getElementById('item-cat');
+
+function selectCategoryChip(name) {
+    hiddenCatInput.value = name;
+    // Visually highlight active chip
+    document.querySelectorAll('.cat-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.name === name);
+    });
+}
+
 onSnapshot(collection(db, "categories"), (snapshot) => {
     if (catList) catList.innerHTML = '';
-    if (catSelect) catSelect.innerHTML = '<option value="">Select Category</option>';
+    if (categorySelector) categorySelector.innerHTML = '';
     
-    // Group categories by type for the dropdown
     const groups = {};
-
     snapshot.forEach(doc => {
         const cat = doc.data();
         const type = cat.type || 'other';
 
-        // Update List in Categories Page
+        // Summary List on Categories Page
         if (catList) {
             const tag = document.createElement('div');
             tag.className = 'badge';
@@ -227,28 +241,36 @@ onSnapshot(collection(db, "categories"), (snapshot) => {
             catList.appendChild(tag);
         }
 
-        // Build groups for the select
         if (!groups[type]) groups[type] = [];
         groups[type].push(cat.name);
     });
 
-    // Populate Select with optgroups
-    if (catSelect) {
+    // Populate Visual Chips in Add Item Modal
+    if (categorySelector) {
         Object.keys(groups).sort().forEach(type => {
-            const groupEl = document.createElement('optgroup');
-            groupEl.label = type.toUpperCase();
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'cat-type-group';
+            groupDiv.innerHTML = `
+                <div class="cat-type-label">${type}</div>
+                <div class="cat-chip-row" id="row-${type}"></div>
+            `;
+            categorySelector.appendChild(groupDiv);
+
+            const row = document.getElementById(`row-${type}`);
             groups[type].sort().forEach(name => {
-                const opt = document.createElement('option');
-                opt.value = name;
-                opt.textContent = name;
-                groupEl.appendChild(opt);
+                const chip = document.createElement('div');
+                chip.className = 'cat-chip';
+                chip.dataset.name = name;
+                chip.textContent = name;
+                chip.onclick = () => selectCategoryChip(name);
+                row.appendChild(chip);
             });
-            catSelect.appendChild(groupEl);
         });
     }
 
     if (snapshot.empty && catList) {
-        catList.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">No categories yet. Create your first one above!</p>';
+        catList.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">No categories yet.</p>';
+        if (categorySelector) categorySelector.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">Create categories first on the Categories page.</p>';
     }
 });
 
@@ -283,7 +305,7 @@ window.editItem = async (id) => {
         const i = d.data();
         document.getElementById('item-name').value = i.name;
         document.getElementById('item-price').value = i.price;
-        document.getElementById('item-cat').value = i.category || '';
+        selectCategoryChip(i.category || '');
         document.getElementById('item-desc').value = i.description || '';
         document.getElementById('item-img').value = (i.image && !i.image.includes('http')) ? i.image : '';
         document.getElementById('item-available').checked = i.available !== false;

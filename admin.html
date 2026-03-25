@@ -68,7 +68,7 @@
                 </div>
                 <div class="table-container">
                     <table id="menu-table">
-                        <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Category</th><th>Available</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Category</th><th>Description</th><th>Available</th><th>Actions</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -159,10 +159,12 @@
                     <input type="number" id="item-price" step="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label for="item-cat">Category</label>
-                    <select id="item-cat" required>
-                        <option value="">Select Category</option>
-                    </select>
+                    <label id="cat-label">Select Category</label>
+                    <div id="category-selector" class="category-chip-container" role="group" aria-labelledby="cat-label">
+                        <!-- Categories injected as chips here -->
+                        <div class="loading">Loading Categories...</div>
+                    </div>
+                    <input type="hidden" id="item-cat" required aria-required="true">
                 </div>
                 <div class="form-group">
                     <label for="item-desc">Description</label>
