@@ -26,9 +26,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    // Orders: Logged in users can create/read, Admins can manage
+    // Orders: Logged in users can create/read their own, Admins can manage all
     match /orders/{orderId} {
-      allow read, create: if request.auth != null;
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && (
+        resource.data.customerId == request.auth.uid || 
+        isAdmin()
+      );
       allow update, delete: if isAdmin();
     }
   }

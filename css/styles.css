@@ -440,3 +440,114 @@ select { padding: 8px; border-radius: 6px; border: 1px solid #ddd; }
         width: 100%;
     }
 }
+
+/* Modal & Checkout Styling */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(12px);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, rgba(30, 30, 30, 0.9), rgba(50, 50, 50, 0.9));
+    padding: 40px;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.checkout-container {
+    max-width: 450px !important;
+}
+
+.checkout-step {
+    display: none;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.checkout-step.active {
+    display: block;
+}
+
+.payment-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.payment-option {
+    cursor: pointer;
+}
+
+.payment-option input {
+    display: none;
+}
+
+.payment-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    padding: 15px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: var(--transition);
+}
+
+.payment-option input:checked + .payment-card {
+    background: rgba(212, 175, 55, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+}
+
+.payment-icon {
+    font-size: 1.5rem;
+}
+
+.payment-text {
+    font-weight: 600;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(212, 175, 55, 0.1);
+    border-left-color: var(--primary);
+    border-radius: 50%;
+    margin: 20px auto;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+#location-status {
+    padding: 8px;
+    background: rgba(212, 175, 55, 0.05);
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 480px) {
+    .checkout-container {
+        width: 100% !important;
+        height: 100%;
+        border-radius: 0;
+        max-width: none !important;
+    }
+}

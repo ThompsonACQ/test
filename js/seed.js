@@ -12,16 +12,25 @@ const menuItems = [
 ];
 
 export async function seedMenu() {
-    const q = query(collection(db, "menuItems"), limit(1));
+    const q = query(collection(db, "menuItems"));
     const snap = await getDocs(q);
     
-    if (snap.empty) {
-        console.log("Seeding menu items...");
-        for (const item of menuItems) {
+    // Check if we need to seed specific items (like Classic Burger)
+    const existingNames = snap.docs.map(doc => doc.data().name);
+    
+    let seeded = 0;
+    for (const item of menuItems) {
+        if (!existingNames.includes(item.name)) {
             await addDoc(collection(db, "menuItems"), item);
+            seeded++;
         }
-        console.log("Menu seeded successfully!");
+    }
+    
+    if (seeded > 1) {
+        console.log(`Seeded ${seeded} new menu items!`);
+    } else if (seeded === 1) {
+        console.log("Seeded 1 new menu item!");
     } else {
-        console.log("Menu already has items, skipping seed.");
+        console.log("Menu is already up to date.");
     }
 }

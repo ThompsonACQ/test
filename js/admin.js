@@ -3,12 +3,39 @@ import {
     doc, getDoc, updateDoc, deleteDoc, collection, 
     onSnapshot, query, orderBy, addDoc 
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js";
+import { 
+    ref, uploadBytesResumable, getDownloadURL 
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js";
 import { updatePassword } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 import { showToast, formatPrice } from './utils.js';
 import { logoutUser } from './auth.js';
 
 console.log("Admin module initializing with high-quality fixes...");
+
+// --- Environment Check ---
+if (window.location.protocol === 'file:') {
+    alert("⚠️ WARNING: You are running this as a local file (file://). Firebase Storage and CORS will FAIL unless you run this from a local server (like Live Server in VS Code) or deploy to GitHub Pages.");
+    console.error("CORS will fail on file:// protocol. Use a local server.");
+}
+
+// --- Image Preview ---
+const imageInput = document.getElementById('image');
+const imagePreview = document.getElementById('image-preview');
+if (imageInput && imagePreview) {
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                imagePreview.src = ev.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            imagePreview.style.display = 'none';
+        }
+    });
+}
 
 // --- Auth Protection ---
 auth.onAuthStateChanged((user) => {
@@ -115,25 +142,129 @@ if (menuForm) {
         const available = document.getElementById('item-available').checked;
         const statusEl = document.getElementById('upload-status');
         
-        let imageUrl = document.getElementById('item-img').value.trim() || '🍽️';
+        const submitBtn = menuForm.querySelector('button[type="submit"]');
+        const emojiInput = document.getElementById('item-img').value.trim();
+        let imageUrl = emojiInput || '🍽️';
 
-        console.log("Starting image upload...");
+        console.log("Starting image upload process...");
+        console.log("Configured Bucket:", storage.app.options.storageBucket);
+        
+        // CRITICAL CHECK: file:// protocol doesn't support CORS correctly
+        if (window.location.protocol === 'file:') {
+            const errorMsg = "⚠️ Running from file:// - Firebase Storage requires a local server. Please use 'Live Server' in VS Code!";
+            if (statusEl) statusEl.innerHTML = `<span style="color:red;">${errorMsg}</span>`;
+            showToast(errorMsg, "error");
+            return;
+        }
+
         try {
             const file = document.getElementById("image").files[0];
             if (file) {
-                if (statusEl) statusEl.textContent = "Uploading image...";
+                if (file.size > 5 * 1024 * 1024) throw new Error("File too large (>5MB)");
+                
+                if (submitBtn) submitBtn.disabled = true;
+                // The bucketName variable is not directly used in ref() but kept for context if needed.
+                // For direct bucket specification in ref(), you would typically configure Firebase app or use a full URL.
+                // The instruction seems to imply a hardcoded bucket for storageRef, which is unusual for ref().
+                // Assuming the intent is to ensure the storage instance is configured for this bucket,
+                // but ref() itself takes a path relative to the root of the bucket configured in the app.
+                // If the goal was to use a different bucket, the Firebase app initialization would need modification.
+                // For now, we'll keep the original bucketName retrieval as it's standard.
+                const bucketName = storage.app.options.storageBucket; 
                 const storageRef = ref(storage, "menuImages/" + Date.now() + "_" + file.name);
-                await uploadBytes(storageRef, file);
-                imageUrl = await getDownloadURL(storageRef);
-                console.log("Image upload success:", imageUrl);
-                if (statusEl) statusEl.textContent = "Upload successful!";
+                const metadata = { contentType: file.type };
+                const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+
+                // Create a promise-based wrapper for the uploadTask with timeout
+                const uploadPromise = new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        uploadTask.cancel();
+                        reject(new Error("Upload timed out (30s). Check CORS/Rules."));
+                    }, 30000);
+
+                    uploadTask.on('state_changed', 
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            if (statusEl) statusEl.textContent = `Uploading: ${Math.round(progress)}%`;
+                        }, 
+                        (error) => {
+                            clearTimeout(timeout);
+                            // Detect if it's a real Firebase error or our custom timeout
+                            if (error.code) {
+                                switch (error.code) {
+                                    case 'storage/unauthorized':
+                                        error.message = "Permission Denied: Check your Firebase Storage Rules!";
+                                        break;
+                                    case 'storage/canceled':
+                                        error.message = "Upload timed out (30s). This usually means CORS is not configured in Google Cloud Shell.";
+                                        break;
+                                    case 'storage/retry-limit-exceeded':
+                                        error.message = "Network error or CORS block. Check Google Cloud Shell setting.";
+                                        break;
+                                }
+                            }
+                            reject(error);
+                        }, 
+                        async () => {
+                            clearTimeout(timeout);
+                            const url = await getDownloadURL(uploadTask.snapshot.ref);
+                            resolve(url);
+                        }
+                    );
+                });
+
+                imageUrl = await uploadPromise;
+                console.log("Success! Image URL:", imageUrl);
+                if (statusEl) statusEl.textContent = "✅ Upload successful!";
             }
         } catch (error) {
             console.error("Storage Error:", error);
-            // If it's a CORS error, we inform but don't block
-            showToast("Upload failed (Storage CORS). Saving item with emoji instead.", "error");
-            if (statusEl) statusEl.textContent = "Upload failed. Using emoji.";
+            const msg = error.message || "Upload failed";
+            if (statusEl) {
+                statusEl.innerHTML = `❌ ${msg} <br> <button type="button" onclick="forceSaveEmoji()" style="font-size:0.7rem; margin-top:5px; background:var(--gold); border:none; padding:2px 5px; cursor:pointer; border-radius:3px;">Force Save with Emoji</button>`;
+            }
+            showToast("Upload failed. You can 'Force Save' to use an emoji instead.", "error");
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
         }
+
+        // Helper for the force save button
+        window.forceSaveEmoji = async () => {
+            const statusEl = document.getElementById('upload-status');
+            if (statusEl) statusEl.textContent = "🚀 Forcing save with emoji...";
+            
+            // Clear file so it doesn't try to upload again
+            document.getElementById('image').value = "";
+            
+            // Re-collect data and save immediately
+            const name = document.getElementById('item-name').value.trim();
+            const price = parseFloat(document.getElementById('item-price').value);
+            const category = document.getElementById('item-cat').value;
+            const description = document.getElementById('item-desc').value.trim();
+            const available = document.getElementById('item-available').checked;
+            const emojiInput = document.getElementById('item-img').value.trim();
+            const id = menuForm.dataset.editId;
+
+            try {
+                const itemData = {
+                    name, price, category, description, available,
+                    image: emojiInput || "🍽️",
+                    updatedAt: new Date()
+                };
+
+                if (id) {
+                    await updateDoc(doc(db, "menuItems", id), itemData);
+                } else {
+                    await addDoc(collection(db, "menuItems"), { ...itemData, createdAt: new Date() });
+                }
+                
+                alert("Success: Item added via Force Save!");
+                closeModal();
+            } catch (err) {
+                console.error("Force Save Error:", err);
+                alert("Firestore Error: " + err.message);
+            }
+        };
 
         try {
             const itemData = {

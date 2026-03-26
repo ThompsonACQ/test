@@ -40,6 +40,116 @@
 
   <div id="toast-container"></div>
 
+  <!-- Checkout Modal -->
+  <div id="checkout-modal" class="modal">
+    <div class="modal-content checkout-container">
+      <div id="checkout-steps">
+        <!-- Step 1: Delivery Details -->
+        <div id="step-1" class="checkout-step active">
+          <h3>Delivery Details 📍</h3>
+          <div class="form-group">
+            <label for="checkout-phone">Phone Number</label>
+            <input type="tel" id="checkout-phone" placeholder="024 123 4567" required>
+          </div>
+          <div class="form-group">
+            <label>Delivery Location</label>
+            <div id="location-status" style="font-size:0.85rem; margin-bottom:10px; color:var(--primary);">Trying to get location...</div>
+            <button type="button" id="get-location-btn" class="secondary-btn" style="margin-top:0; font-size:0.85rem; padding:10px;">📍 Refresh Location</button>
+            <div id="manual-address-group" class="hidden" style="margin-top:15px;">
+              <label for="checkout-address">Manual Address</label>
+              <textarea id="checkout-address" rows="2" placeholder="e.g. House No. 12, Osu, Accra"></textarea>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:20px;">
+            <button type="button" id="cancel-checkout-btn" class="secondary-btn" style="flex:1;">Cancel</button>
+            <button type="button" id="to-step-2" class="btn-gold" style="flex:2;">Next: Payment Method ➔</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Payment Method -->
+        <div id="step-2" class="checkout-step">
+          <h3>Payment Method 💳</h3>
+          <div class="payment-options">
+            <label class="payment-option">
+              <input type="radio" name="payment-method" value="cash" checked>
+              <div class="payment-card">
+                <span class="payment-icon">💵</span>
+                <span class="payment-text">Cash on Delivery</span>
+              </div>
+            </label>
+            <label class="payment-option">
+              <input type="radio" name="payment-method" value="momo">
+              <div class="payment-card">
+                <span class="payment-icon">📱</span>
+                <span class="payment-text">Mobile Money</span>
+              </div>
+            </label>
+            <label class="payment-option">
+              <input type="radio" name="payment-method" value="card">
+              <div class="payment-card">
+                <span class="payment-icon">💳</span>
+                <span class="payment-text">Credit/Debit Card</span>
+              </div>
+            </label>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:20px;">
+            <button type="button" id="back-to-step-1" class="secondary-btn" style="flex:1;">Back</button>
+            <button type="button" id="to-step-3" class="btn-gold" style="flex:2;">Continue ➔</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Card Details (Conditional) -->
+        <div id="step-3-card" class="checkout-step">
+          <h3>Card Details 🔒</h3>
+          <div class="form-group">
+            <label for="card-num">Card Number</label>
+            <input type="text" id="card-num" placeholder="XXXX XXXX XXXX XXXX" maxlength="19">
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div class="form-group" style="flex:1;">
+              <label for="card-exp">Expiry (MM/YY)</label>
+              <input type="text" id="card-exp" placeholder="MM/YY" maxlength="5">
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label for="card-cvv">CVV</label>
+              <input type="password" id="card-cvv" placeholder="123" maxlength="3">
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button type="button" id="back-to-step-2-card" class="secondary-btn" style="flex:1;">Back</button>
+            <button type="button" id="confirm-card-btn" class="btn-gold" style="flex:2;">Pay & Place Order</button>
+          </div>
+        </div>
+
+        <!-- Step 3: MoMo Instructions (Conditional) -->
+        <div id="step-3-momo" class="checkout-step">
+          <h3>Mobile Money 📱</h3>
+          <p style="font-size:0.9rem; margin-bottom:20px; text-align:center;">
+            You will receive a prompt on your phone to complete the payment after placing the order.
+          </p>
+          <div style="display:flex; gap:10px;">
+            <button type="button" id="back-to-step-2-momo" class="secondary-btn" style="flex:1;">Back</button>
+            <button type="button" id="confirm-momo-btn" class="btn-gold" style="flex:2;">Initiate Payment & Order</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Processing / Success -->
+        <div id="step-final" class="checkout-step" style="text-align:center;">
+          <div id="processing-msg">
+            <div class="spinner"></div>
+            <h3>Processing Your Order...</h3>
+          </div>
+          <div id="success-msg" class="hidden">
+            <span style="font-size:4rem;">✅</span>
+            <h3>Order Placed Successfully!</h3>
+            <p id="order-summary-msg">Your order is being prepared.</p>
+            <button type="button" id="close-checkout-btn" class="btn-gold" style="margin-top:20px;">Return to Menu</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { initAuth, logoutUser } from './js/auth.js';
     import { loadMenu, renderCart, placeOrder, loadOrders } from './js/app.js';

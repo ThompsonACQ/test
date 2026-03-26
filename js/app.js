@@ -102,30 +102,162 @@ export function renderCart(containerId) {
     container.appendChild(totalEl);
 }
 
+let userLocation = null;
+
 export async function placeOrder() {
     if (cart.length === 0) return showToast("Cart is empty", 'error');
     if (!auth.currentUser) return showToast("Please login first", 'error');
 
+    // Reset Modal
+    document.querySelectorAll('.checkout-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-1').classList.add('active');
+    document.getElementById('success-msg').classList.add('hidden');
+    document.getElementById('processing-msg').classList.remove('hidden');
+    document.getElementById('checkout-modal').style.display = 'flex';
+    
+    // Start Geolocation
+    requestLocation();
+}
+
+// Geolocation Logic
+function requestLocation() {
+    const status = document.getElementById('location-status');
+    const manualGroup = document.getElementById('manual-address-group');
+    
+    if (!navigator.geolocation) {
+        status.textContent = "Geolocation not supported.";
+        manualGroup.classList.remove('hidden');
+        return;
+    }
+
+    status.textContent = "📍 Detecting location...";
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            status.innerHTML = `✅ Location captured! <br><small>(${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)})</small>`;
+            manualGroup.classList.add('hidden');
+        },
+        (err) => {
+            console.warn("Location error:", err);
+            status.textContent = "❌ Permission denied. Please enter address manually.";
+            manualGroup.classList.remove('hidden');
+            userLocation = null;
+        },
+        { timeout: 10000 }
+    );
+}
+
+// Navigation & Logic for Steps
+document.addEventListener('click', async (e) => {
+    const id = e.target.id;
+    const modal = document.getElementById('checkout-modal');
+    if (!modal) return;
+
+    // Step 1 -> Step 2
+    if (id === 'to-step-2') {
+        const phone = document.getElementById('checkout-phone').value.trim();
+        const address = document.getElementById('checkout-address').value.trim();
+        
+        if (!phone || phone.length < 8) return showToast("Please enter a valid phone number", 'error');
+        if (!userLocation && !address) return showToast("Please provide your location or address", 'error');
+        
+        switchStep('step-1', 'step-2');
+    }
+
+    // Step 2 -> Step 3 (Logic)
+    if (id === 'to-step-3') {
+        const method = document.querySelector('input[name="payment-method"]:checked').value;
+        if (method === 'cash') {
+            submitFinalOrder('cash', 'pending');
+        } else if (method === 'card') {
+            switchStep('step-2', 'step-3-card');
+        } else if (method === 'momo') {
+            switchStep('step-2', 'step-3-momo');
+        }
+    }
+
+    // Confirm Card
+    if (id === 'confirm-card-btn') {
+        const num = document.getElementById('card-num').value.replace(/\s/g, '');
+        if (num.length < 16) return showToast("Invalid card number", 'error');
+        submitFinalOrder('card', 'paid');
+    }
+
+    // Confirm MoMo
+    if (id === 'confirm-momo-btn') {
+        submitFinalOrder('momo', 'initiated');
+    }
+
+    // Back Buttons
+    if (id === 'back-to-step-1') switchStep('step-2', 'step-1');
+    if (id === 'back-to-step-2-card') switchStep('step-3-card', 'step-2');
+    if (id === 'back-to-step-2-momo') switchStep('step-3-momo', 'step-2');
+
+    // Close / Finish / Cancel
+    if (id === 'close-checkout-btn' || id === 'cancel-checkout-btn') {
+        modal.style.display = 'none';
+        if (id === 'close-checkout-btn') {
+            const navMenu = document.getElementById('nav-menu');
+            if (navMenu) navMenu.click();
+        }
+    }
+    
+    // Refresh Location
+    if (id === 'get-location-btn') requestLocation();
+});
+
+function switchStep(from, to) {
+    document.getElementById(from).classList.remove('active');
+    document.getElementById(to).classList.add('active');
+}
+
+async function submitFinalOrder(method, pStatus) {
+    document.querySelectorAll('.checkout-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-final').classList.add('active');
+    
+    const phone = document.getElementById('checkout-phone').value.trim();
+    const address = document.getElementById('checkout-address').value.trim();
     const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    
     const orderData = {
-        customerEmail: auth.currentUser.email,
         customerId: auth.currentUser.uid,
+        customerEmail: auth.currentUser.email,
+        phoneNumber: phone,
+        location: userLocation || { address: address },
         items: cart,
         totalPrice: total,
+        paymentMethod: method,
+        paymentStatus: pStatus,
         status: 'pending',
         createdAt: serverTimestamp()
     };
 
     try {
+        // Simulate processing delay
+        await new Promise(r => setTimeout(r, 2000));
+        
         await addDoc(collection(db, "orders"), orderData);
+        
         cart = [];
-        saveCart();
-        showToast("Order placed successfully!", 'success');
-        // Switch to orders view
-        const navOrders = document.getElementById('nav-orders');
-        if (navOrders) navOrders.click();
+        localStorage.setItem('cart', '[]');
+        document.dispatchEvent(new CustomEvent('cart-updated'));
+        
+        document.getElementById('processing-msg').classList.add('hidden');
+        document.getElementById('success-msg').classList.remove('hidden');
+        
+        // Update summary based on status
+        const summary = document.getElementById('order-summary-msg');
+        if (method === 'momo') {
+            summary.textContent = "Order placed! Watch for the Mobile Money prompt on your phone.";
+        } else if (method === 'card') {
+            summary.textContent = "Payment successful! Your order is being prepared.";
+        } else {
+            summary.textContent = "Order received! Please have Cash ready for delivery.";
+        }
     } catch (e) {
+        console.error(e);
         showToast("Order failed: " + e.message, 'error');
+        switchStep('step-final', 'step-2');
     }
 }
 
