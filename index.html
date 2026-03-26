@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Coach Derrick's Cook Center 🥘</title>
   <link rel="stylesheet" href="css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Paystack SDK -->
+  <script src="https://js.paystack.co/v1/inline.js"></script>
 </head>
 
 <body>
@@ -84,6 +87,17 @@
                 <span class="payment-text">Mobile Money</span>
               </div>
             </label>
+            <!-- Network Selection (Hidden by default) -->
+            <div id="momo-networks" class="hidden" style="margin-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+              <p style="font-size: 0.8rem; margin: 5px 0; opacity: 0.8;">Select Network Provider:</p>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; cursor: pointer;">
+                <input type="radio" name="momo-network" value="mtn" checked> MTN Mobile Money
+              </label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; cursor: pointer;">
+                <input type="radio" name="momo-network" value="telecel"> Telecel (Vodafone)
+              </label>
+            </div>
+            
             <label class="payment-option">
               <input type="radio" name="payment-method" value="card">
               <div class="payment-card">

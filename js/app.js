@@ -160,8 +160,15 @@ document.addEventListener('click', async (e) => {
     // Monitor radio changes (even though we use delegating listeners for clicks)
     if (e.target.name === 'payment-method') {
         const btn = document.getElementById('to-step-3');
+        const networks = document.getElementById('momo-networks');
+        
         if (btn) {
             btn.textContent = e.target.value === 'cash' ? "Place Order 🚀" : "Continue ➔";
+        }
+        
+        if (networks) {
+            if (e.target.value === 'momo') networks.classList.remove('hidden');
+            else networks.classList.add('hidden');
         }
     }
 
@@ -239,51 +246,68 @@ async function submitFinalOrder(method, pStatus) {
         items: cart,
         totalPrice: total,
         paymentMethod: method,
+        momoNetwork: method === 'momo' ? document.querySelector('input[name="momo-network"]:checked').value : null,
         paymentStatus: pStatus,
         status: 'pending',
         createdAt: serverTimestamp()
     };
 
-    try {
-        // Dynamic Processing Message
-        const msgEl = document.getElementById('processing-msg');
-        if (method === 'momo') {
-            msgEl.innerHTML = `
-                <div class="spinner"></div>
-                <h3>Waiting for PIN Authorization...</h3>
-                <p style="font-size:0.9rem; color:var(--primary);">A prompt has been sent to <strong>${phone}</strong></p>
-                <div style="font-size:0.8rem; margin-top:10px; opacity:0.7;">Please enter your PIN on your phone to complete.</div>
-            `;
-            await new Promise(r => setTimeout(r, 4000)); // Longer wait for Momo
-        } else if (method === 'card') {
-            msgEl.innerHTML = `
-                <div class="spinner"></div>
-                <h3>Contacting Bank Security...</h3>
-                <p style="font-size:0.8rem; opacity:0.7;">Verifying card details and processing payment.</p>
-            `;
-            await new Promise(r => setTimeout(r, 3000));
-        } else {
-            // Cash delay
-            await new Promise(r => setTimeout(r, 1500));
+    if (method === 'cash') {
+        processFirestoreOrder(orderData);
+    } else {
+        payWithPaystack(orderData);
+    }
+}
+
+function payWithPaystack(orderData) {
+    // PUBLIC KEY - User replaces this in their dashboard
+    const PAYSTACK_PUBLIC_KEY = 'pk_test_your_public_key_here'; 
+
+    const handler = PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: orderData.customerEmail,
+        amount: Math.round(orderData.totalPrice * 100), // In pesewas/kobo
+        currency: 'GHS',
+        channels: orderData.paymentMethod === 'card' ? ['card'] : ['mobile_money'],
+        metadata: {
+            custom_fields: [
+                { display_name: "Phone", variable_name: "phone", value: orderData.phoneNumber }
+            ]
+        },
+        callback: function(response) {
+            orderData.paymentStatus = 'paid';
+            orderData.transactionReference = response.reference;
+            processFirestoreOrder(orderData);
+        },
+        onClose: function() {
+            showToast("Payment cancelled", "error");
+            document.getElementById('processing-msg').classList.add('hidden');
+            switchStep('step-final', 'step-2'); 
         }
-        
+    });
+    handler.openIframe();
+}
+
+async function processFirestoreOrder(orderData) {
+    try {
+        const msgEl = document.getElementById('processing-msg');
+        msgEl.innerHTML = `<div class="spinner"></div><h3>Finalizing Your Order...</h3>`;
+        msgEl.classList.remove('hidden');
+
         await addDoc(collection(db, "orders"), orderData);
         
         cart = [];
         localStorage.setItem('cart', '[]');
         document.dispatchEvent(new CustomEvent('cart-updated'));
         
-        document.getElementById('processing-msg').classList.add('hidden');
+        msgEl.classList.add('hidden');
         document.getElementById('success-msg').classList.remove('hidden');
         
-        // Update summary based on status
         const summary = document.getElementById('order-summary-msg');
-        if (method === 'momo') {
-            summary.textContent = "Order placed! Watch for the Mobile Money prompt on your phone.";
-        } else if (method === 'card') {
-            summary.textContent = "Payment successful! Your order is being prepared.";
-        } else {
+        if (orderData.paymentMethod === 'cash') {
             summary.textContent = "Order received! Please have Cash ready for delivery.";
+        } else {
+            summary.textContent = `Payment successful! Ref: ${orderData.transactionReference || 'N/A'}`;
         }
     } catch (e) {
         console.error(e);
