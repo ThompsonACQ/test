@@ -117,6 +117,10 @@ export async function placeOrder() {
     
     // Start Geolocation
     requestLocation();
+
+    // Reset button text to default
+    const toStep3Btn = document.getElementById('to-step-3');
+    if (toStep3Btn) toStep3Btn.textContent = "Place Order 🚀"; // Cash is default
 }
 
 // Geolocation Logic
@@ -152,6 +156,14 @@ document.addEventListener('click', async (e) => {
     const id = e.target.id;
     const modal = document.getElementById('checkout-modal');
     if (!modal) return;
+
+    // Monitor radio changes (even though we use delegating listeners for clicks)
+    if (e.target.name === 'payment-method') {
+        const btn = document.getElementById('to-step-3');
+        if (btn) {
+            btn.textContent = e.target.value === 'cash' ? "Place Order 🚀" : "Continue ➔";
+        }
+    }
 
     // Step 1 -> Step 2
     if (id === 'to-step-2') {
@@ -197,8 +209,8 @@ document.addEventListener('click', async (e) => {
     if (id === 'close-checkout-btn' || id === 'cancel-checkout-btn') {
         modal.style.display = 'none';
         if (id === 'close-checkout-btn') {
-            const navMenu = document.getElementById('nav-menu');
-            if (navMenu) navMenu.click();
+            const navOrders = document.getElementById('nav-orders');
+            if (navOrders) navOrders.click();
         }
     }
     
@@ -233,8 +245,27 @@ async function submitFinalOrder(method, pStatus) {
     };
 
     try {
-        // Simulate processing delay
-        await new Promise(r => setTimeout(r, 2000));
+        // Dynamic Processing Message
+        const msgEl = document.getElementById('processing-msg');
+        if (method === 'momo') {
+            msgEl.innerHTML = `
+                <div class="spinner"></div>
+                <h3>Waiting for PIN Authorization...</h3>
+                <p style="font-size:0.9rem; color:var(--primary);">A prompt has been sent to <strong>${phone}</strong></p>
+                <div style="font-size:0.8rem; margin-top:10px; opacity:0.7;">Please enter your PIN on your phone to complete.</div>
+            `;
+            await new Promise(r => setTimeout(r, 4000)); // Longer wait for Momo
+        } else if (method === 'card') {
+            msgEl.innerHTML = `
+                <div class="spinner"></div>
+                <h3>Contacting Bank Security...</h3>
+                <p style="font-size:0.8rem; opacity:0.7;">Verifying card details and processing payment.</p>
+            `;
+            await new Promise(r => setTimeout(r, 3000));
+        } else {
+            // Cash delay
+            await new Promise(r => setTimeout(r, 1500));
+        }
         
         await addDoc(collection(db, "orders"), orderData);
         
