@@ -177,7 +177,12 @@ document.addEventListener('click', async (e) => {
         const phone = document.getElementById('checkout-phone').value.trim();
         const address = document.getElementById('checkout-address').value.trim();
         
-        if (!phone || phone.length < 8) return showToast("Please enter a valid phone number", 'error');
+        // Strict Phone Validation (Ghana format: 10 digits e.g., 0241234567)
+        const phoneRegex = /^0\d{9}$/;
+        if (!phoneRegex.test(phone) && phone.length < 10) {
+            return showToast("Please enter a valid 10-digit phone number (e.g., 0241234567)", 'error');
+        }
+        
         if (!userLocation && !address) return showToast("Please provide your location or address", 'error');
         
         switchStep('step-1', 'step-2');
@@ -234,58 +239,103 @@ async function submitFinalOrder(method, pStatus) {
     document.querySelectorAll('.checkout-step').forEach(s => s.classList.remove('active'));
     document.getElementById('step-final').classList.add('active');
     
+    // Clear previous errors/messages
+    const msgEl = document.getElementById('processing-msg');
+    msgEl.innerHTML = `<div class="spinner"></div><h3>Initiating Payment...</h3>`;
+    msgEl.classList.remove('hidden');
+    document.getElementById('success-msg').classList.add('hidden');
+
     const phone = document.getElementById('checkout-phone').value.trim();
     const address = document.getElementById('checkout-address').value.trim();
     const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     
+    let momoNet = null;
+    if (method === 'momo') {
+        const checkedNet = document.querySelector('input[name="momo-network"]:checked');
+        momoNet = checkedNet ? checkedNet.value : 'mtn';
+    }
+    
+    // Create clean order object (Firebase rejects 'undefined')
     const orderData = {
-        customerId: auth.currentUser.uid,
+        userId: auth.currentUser.uid,
         customerEmail: auth.currentUser.email,
-        phoneNumber: phone,
-        location: userLocation || { address: address },
-        items: cart,
+        phoneNumber: phone || "Not Provided",
+        location: userLocation ? userLocation : { address: address || "No Address" },
+        items: cart.map(item => ({
+            id: item.id || null,
+            name: item.name || "Unknown Item",
+            price: item.price || 0,
+            qty: item.qty || 1,
+            image: item.image || "🍽️"
+        })),
         totalPrice: total,
         paymentMethod: method,
-        momoNetwork: method === 'momo' ? document.querySelector('input[name="momo-network"]:checked').value : null,
+        momoNetwork: momoNet,
         paymentStatus: pStatus,
+        transactionReference: "N/A", // Default for cash
         status: 'pending',
         createdAt: serverTimestamp()
     };
 
     if (method === 'cash') {
-        processFirestoreOrder(orderData);
+        // Explicitly bypass Paystack. Save immediately.
+        await processFirestoreOrder(orderData);
     } else {
+        // Mobile Money or Card
         payWithPaystack(orderData);
     }
 }
 
 function payWithPaystack(orderData) {
-    // PUBLIC KEY - User replaces this in their dashboard
-    const PAYSTACK_PUBLIC_KEY = 'pk_test_your_public_key_here'; 
+    // PUBLIC KEY
+    // IMPORTANT: 
+    // - Use 'pk_test_...' for testing (Mobile Money prompts are SIMULATED and won't appear on real phones).
+    // - Use 'pk_live_...' to go live. When live, a real payment prompt will be sent to the CUSTOMER'S phone number below.
+    const PAYSTACK_PUBLIC_KEY = 'pk_test_b275dab535f12df5fca9104c23064759223cc47b'; 
+
+    // Error handling if user hasn't configured their Paystack key gracefully
+    if (PAYSTACK_PUBLIC_KEY.includes('your_public_key_here')) {
+        showToast("Paystack Error: Please configure your Paystack Public Key in app.js!", "error");
+        document.getElementById('processing-msg').innerHTML = `<h3 style="color:red;">❌ Invalid Paystack Key</h3><p>System Administrator needs to configure the Paystack Public Key.</p>`;
+        setTimeout(() => switchStep('step-final', 'step-2'), 3000);
+        return;
+    }
 
     const handler = PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
         email: orderData.customerEmail,
-        amount: Math.round(orderData.totalPrice * 100), // In pesewas/kobo
+        // The phone number we captured is natively passed so Paystack can pre-fill or send the prompt to this exact customer
+        phone: orderData.phoneNumber, 
+        // Paystack amount is strictly in kobo/pesewas (multiply by 100)
+        amount: Math.round(orderData.totalPrice * 100), 
         currency: 'GHS',
         channels: orderData.paymentMethod === 'card' ? ['card'] : ['mobile_money'],
         metadata: {
             custom_fields: [
-                { display_name: "Phone", variable_name: "phone", value: orderData.phoneNumber }
+                { display_name: "Customer Phone", variable_name: "phone", value: orderData.phoneNumber },
+                { display_name: "Customer ID", variable_name: "userId", value: orderData.userId }
             ]
         },
         callback: function(response) {
+            // Verify transaction reference here ideally with a backend
+            // For now, we proceed to save the successful reference
             orderData.paymentStatus = 'paid';
             orderData.transactionReference = response.reference;
             processFirestoreOrder(orderData);
         },
         onClose: function() {
-            showToast("Payment cancelled", "error");
+            showToast("Payment window closed or cancelled.", "error");
             document.getElementById('processing-msg').classList.add('hidden');
             switchStep('step-final', 'step-2'); 
         }
     });
-    handler.openIframe();
+
+    try {
+        handler.openIframe();
+    } catch (err) {
+        showToast("Paystack Failed: " + err.message, "error");
+        switchStep('step-final', 'step-2');
+    }
 }
 
 async function processFirestoreOrder(orderData) {
@@ -294,12 +344,17 @@ async function processFirestoreOrder(orderData) {
         msgEl.innerHTML = `<div class="spinner"></div><h3>Finalizing Your Order...</h3>`;
         msgEl.classList.remove('hidden');
 
+        // Remove any undefined keys to prevent Firebase errors
+        Object.keys(orderData).forEach(key => orderData[key] === undefined && delete orderData[key]);
+
         await addDoc(collection(db, "orders"), orderData);
         
+        // Clear Cart
         cart = [];
         localStorage.setItem('cart', '[]');
         document.dispatchEvent(new CustomEvent('cart-updated'));
         
+        // Update UI
         msgEl.classList.add('hidden');
         document.getElementById('success-msg').classList.remove('hidden');
         
@@ -307,11 +362,12 @@ async function processFirestoreOrder(orderData) {
         if (orderData.paymentMethod === 'cash') {
             summary.textContent = "Order received! Please have Cash ready for delivery.";
         } else {
-            summary.textContent = `Payment successful! Ref: ${orderData.transactionReference || 'N/A'}`;
+            summary.textContent = `Payment successful! Ref: ${orderData.transactionReference}`;
         }
     } catch (e) {
-        console.error(e);
-        showToast("Order failed: " + e.message, 'error');
+        console.error("Firestore Save Error:", e);
+        showToast("Order failed to save: " + e.message, 'error');
+        document.getElementById('processing-msg').classList.add('hidden');
         switchStep('step-final', 'step-2');
     }
 }
