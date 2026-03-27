@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Restaurant Admin</title>
+    <title>Solicious Admin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/admin.css">
@@ -19,9 +19,12 @@
 
         <!-- Left Sidebar -->
         <aside class="admin-sidebar" id="admin-sidebar">
-            <div class="logo-section" style="display:flex; align-items:center;">
-                <img src="img/logo.png" alt="Logo" class="logo-img" style="height:40px; margin-right:10px;">
-                <h2 style="margin:0;">Cook Center</h2>
+            <div class="logo-section">
+                <!-- Pure CSS Logo matching the uploaded image -->
+                <div class="solicious-logo" style="transform: scale(0.8) rotate(-2deg); transform-origin: left center;">
+                  <div class="sol-main">Solicious</div>
+                  <div class="sol-sub">Fastfood</div>
+                </div>
             </div>
             <ul class="admin-nav">
                 <li><a href="#dashboard" class="active">📊 Dashboard</a></li>
@@ -31,7 +34,7 @@
                 <li><a href="#categories">📂 Categories</a></li>
                 <li><a href="#settings">⚙️ Settings</a></li>
             </ul>
-            <button id="logout-btn" class="logout-btn">🔴 Logout</button>
+            <button id="logout-btn" class="logout-btn-premium" style="margin-top: auto; width: 100%;">Logout</button>
         </aside>
 
         <!-- Main Content -->

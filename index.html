@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coach Derrick's Cook Center 🥘</title>
+  <title>Solicious Fastfood 🍔</title>
   <link rel="stylesheet" href="css/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <!-- Paystack SDK -->
@@ -15,14 +15,20 @@
 
   <!-- Dashboard Screen -->
   <div id="dashboard-view" class="container">
-    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-      <div style="display:flex; align-items:center;">
-        <img src="img/logo.png" alt="Cook Center Logo" class="logo-img">
-        <h1 style="margin:0;">Cook Center</h1>
+    <header class="main-header">
+      <div class="brand-container">
+        <!-- Pure CSS Logo matching the uploaded image -->
+        <div class="solicious-logo">
+          <div class="sol-main">Solicious</div>
+          <div class="sol-sub">Fastfood</div>
+        </div>
       </div>
-      <div>
-        <span id="user-display" style="margin-right:15px; color:#555;"></span>
-        <button id="logout-btn" style="width:auto; background:#333; padding:10px 20px;">Logout</button>
+      <div class="user-controls">
+        <div class="user-badge">
+          <div class="user-icon" id="user-initial">U</div>
+          <span id="user-display"></span>
+        </div>
+        <button id="logout-btn" class="logout-btn-premium">Logout</button>
       </div>
     </header>
 
@@ -183,6 +189,9 @@
           return;
         }
         userDisplay.textContent = user.email;
+        const initial = user.email.charAt(0).toUpperCase();
+        const userInitialEl = document.getElementById('user-initial');
+        if (userInitialEl) userInitialEl.textContent = initial;
         await seedMenu();
         setActive('menu');
       }

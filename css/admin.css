@@ -116,24 +116,11 @@ body {
     box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
 }
 
-.logout-btn {
-    margin-top: auto;
-    background: transparent;
-    border: 1px solid var(--danger);
-    color: var(--danger);
-    padding: 12px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600;
-    transition: all 0.2s;
-    width: 100%;
-    text-align: center;
-}
-
-.logout-btn:hover {
-    background-color: var(--danger);
-    color: var(--text-white);
+.logo-section {
+    margin-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 /* Main Content */
