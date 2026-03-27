@@ -36,6 +36,7 @@
       <button id="nav-menu" class="active">🍽️ Menu</button>
       <button id="nav-cart">🛒 Cart (<span id="cart-count">0</span>)</button>
       <button id="nav-orders">📦 My Orders</button>
+      <a href="about.html" class="nav-link">ℹ️ About Us</a>
     </nav>
 
     <main id="main-content">
@@ -192,8 +193,8 @@
         const initial = user.email.charAt(0).toUpperCase();
         const userInitialEl = document.getElementById('user-initial');
         if (userInitialEl) userInitialEl.textContent = initial;
-        await seedMenu();
         setActive('menu');
+        seedMenu().catch(console.error);
       }
     });
 
