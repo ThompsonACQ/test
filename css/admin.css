@@ -469,6 +469,56 @@ input:focus, select:focus, textarea:focus {
     box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
 }
 
+/* Dropzone styling */
+.dropzone {
+    position: relative;
+    border: 2px dashed rgba(255, 225, 27, 0.4);
+    border-radius: 12px;
+    padding: 30px 20px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.03);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.dropzone:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--primary);
+}
+
+.dropzone.dragover {
+    background: rgba(255, 225, 27, 0.15);
+    border-color: var(--primary);
+    transform: scale(1.02);
+}
+
+.dropzone-file-input {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.dropzone-text {
+    pointer-events: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.emoji-input-overlay {
+    position: relative;
+    z-index: 20;
+    width: 60%;
+    margin: 0 auto;
+    display: block;
+    background: rgba(0,0,0,0.5) !important;
+    text-align: center;
+}
+
 /* Animations for sidebar (already exist, but good to keep isolated) */
 @keyframes fadeIn {
     from { opacity: 0; }

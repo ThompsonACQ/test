@@ -1,11 +1,8 @@
-import { db, auth, storage } from './firebase.js';
+import { db, auth } from './firebase.js';
 import { 
     doc, getDoc, updateDoc, deleteDoc, collection, 
     onSnapshot, query, orderBy, addDoc 
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-import { 
-    ref, uploadBytesResumable, getDownloadURL 
-} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js";
 import { updatePassword } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 import { showToast, formatPrice } from './utils.js';
 import { logoutUser } from './auth.js';
@@ -18,22 +15,94 @@ if (window.location.protocol === 'file:') {
     console.error("CORS will fail on file:// protocol. Use a local server.");
 }
 
-// --- Image Preview ---
+// --- Cloudinary Configuration ---
+// IMPORTANT: Replace these with your actual Cloudinary Cloud Name and Unsigned Upload Preset!
+const CLOUD_NAME = "dkcfhjkps"; 
+const UPLOAD_PRESET = "restaurant_upload";
+
+// --- Image Preview & Drag and Drop ---
 const imageInput = document.getElementById('image');
 const imagePreview = document.getElementById('image-preview');
-if (imageInput && imagePreview) {
+const dropzone = document.getElementById('dropzone');
+
+function handleImageSelection(file) {
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            imagePreview.src = ev.target.result;
+            imagePreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        imagePreview.style.display = 'none';
+    }
+}
+
+if (imageInput && imagePreview && dropzone) {
     imageInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                imagePreview.src = ev.target.result;
-                imagePreview.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
-        } else {
-            imagePreview.style.display = 'none';
+        handleImageSelection(e.target.files[0]);
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            imageInput.files = e.dataTransfer.files;
+            handleImageSelection(e.dataTransfer.files[0]);
         }
+    });
+}
+
+// --- Image Compression Helper ---
+function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width *= maxHeight / height;
+                        height = maxHeight;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    resolve(new File([blob], file.name, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    }));
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = (error) => reject(error);
+        };
+        reader.onerror = (error) => reject(error);
     });
 }
 
@@ -146,86 +215,61 @@ if (menuForm) {
         const emojiInput = document.getElementById('item-img').value.trim();
         let imageUrl = emojiInput || '🍽️';
 
-        console.log("Starting image upload process...");
-        console.log("Configured Bucket:", storage.app.options.storageBucket);
-        
-        // CRITICAL CHECK: file:// protocol doesn't support CORS correctly
-        if (window.location.protocol === 'file:') {
-            const errorMsg = "⚠️ Running from file:// - Firebase Storage requires a local server. Please use 'Live Server' in VS Code!";
-            if (statusEl) statusEl.innerHTML = `<span style="color:red;">${errorMsg}</span>`;
-            showToast(errorMsg, "error");
-            return;
-        }
-
         try {
-            const file = document.getElementById("image").files[0];
+            const fileInput = document.getElementById("image");
+            let file = fileInput.files[0];
+            
             if (file) {
-                if (file.size > 5 * 1024 * 1024) throw new Error("File too large (>5MB)");
+                if (file.size > 10 * 1024 * 1024) throw new Error("File too large (>10MB). Cloudinary limit or your network may struggle.");
                 
                 if (submitBtn) submitBtn.disabled = true;
-                // The bucketName variable is not directly used in ref() but kept for context if needed.
-                // For direct bucket specification in ref(), you would typically configure Firebase app or use a full URL.
-                // The instruction seems to imply a hardcoded bucket for storageRef, which is unusual for ref().
-                // Assuming the intent is to ensure the storage instance is configured for this bucket,
-                // but ref() itself takes a path relative to the root of the bucket configured in the app.
-                // If the goal was to use a different bucket, the Firebase app initialization would need modification.
-                // For now, we'll keep the original bucketName retrieval as it's standard.
-                const bucketName = storage.app.options.storageBucket; 
-                const storageRef = ref(storage, "menuImages/" + Date.now() + "_" + file.name);
-                const metadata = { contentType: file.type };
-                const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+                if (statusEl) statusEl.textContent = "Compressing image...";
 
-                // Create a promise-based wrapper for the uploadTask with timeout
-                const uploadPromise = new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => {
-                        uploadTask.cancel();
-                        reject(new Error("Upload timed out (30s). Check CORS/Rules."));
-                    }, 30000);
+                // Compress image to save bandwidth and storage
+                file = await compressImage(file, 800, 800, 0.8);
 
-                    uploadTask.on('state_changed', 
-                        (snapshot) => {
-                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                            if (statusEl) statusEl.textContent = `Uploading: ${Math.round(progress)}%`;
-                        }, 
-                        (error) => {
-                            clearTimeout(timeout);
-                            // Detect if it's a real Firebase error or our custom timeout
-                            if (error.code) {
-                                switch (error.code) {
-                                    case 'storage/unauthorized':
-                                        error.message = "Permission Denied: Check your Firebase Storage Rules!";
-                                        break;
-                                    case 'storage/canceled':
-                                        error.message = "Upload timed out (30s). This usually means CORS is not configured in Google Cloud Shell.";
-                                        break;
-                                    case 'storage/retry-limit-exceeded':
-                                        error.message = "Network error or CORS block. Check Google Cloud Shell setting.";
-                                        break;
-                                }
-                            }
-                            reject(error);
-                        }, 
-                        async () => {
-                            clearTimeout(timeout);
-                            const url = await getDownloadURL(uploadTask.snapshot.ref);
-                            resolve(url);
-                        }
-                    );
+                if (statusEl) statusEl.textContent = "Uploading to Cloudinary 🚀...";
+
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("upload_preset", UPLOAD_PRESET);
+
+                // Check if user forgot to set credentials
+                if (CLOUD_NAME === "YOUR_CLOUD_NAME" || UPLOAD_PRESET === "YOUR_UPLOAD_PRESET") {
+                    throw new Error("Please configure your Cloudinary CLOUD_NAME and UPLOAD_PRESET in admin.js!");
+                }
+
+                // Cloudinary unsigned upload endpoint
+                const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+
+                const response = await fetch(cloudinaryUrl, {
+                    method: 'POST',
+                    body: formData
                 });
 
-                imageUrl = await uploadPromise;
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error?.message || "Cloudinary upload failed!");
+                }
+
+                const data = await response.json();
+                imageUrl = data.secure_url;
+
                 console.log("Success! Image URL:", imageUrl);
                 if (statusEl) statusEl.textContent = "✅ Upload successful!";
             }
         } catch (error) {
-            console.error("Storage Error:", error);
+            console.error("Upload Error:", error);
             const msg = error.message || "Upload failed";
             if (statusEl) {
                 statusEl.innerHTML = `❌ ${msg} <br> <button type="button" onclick="forceSaveEmoji()" style="font-size:0.7rem; margin-top:5px; background:var(--gold); border:none; padding:2px 5px; cursor:pointer; border-radius:3px;">Force Save with Emoji</button>`;
             }
-            showToast("Upload failed. You can 'Force Save' to use an emoji instead.", "error");
-        } finally {
+            showToast(msg, "error");
             if (submitBtn) submitBtn.disabled = false;
+            return; // Stop form submission if image upload fails
+        } finally {
+            // Keep button disabled if we are proceeding to Firestore save
+            if (submitBtn && !document.getElementById("image").files[0]) submitBtn.disabled = false; 
         }
 
         // Helper for the force save button

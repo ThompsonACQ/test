@@ -174,13 +174,18 @@
                     <textarea id="item-desc" rows="3" placeholder="Describe the dish..."></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="image">Product Image (Upload or Emoji)</label>
-                    <div style="display:flex; gap:10px;">
-                        <input type="file" id="image" accept="image/*" style="width:auto; margin-bottom:0;">
-                        <input type="text" id="item-img" aria-label="Emoji Icon" placeholder="Or use emoji 🍔" style="flex:1; margin-bottom:0;">
+                    <label>Product Image</label>
+                    <div id="dropzone" class="dropzone">
+                        <div class="dropzone-text">
+                            <span>📸 Drag & Drop image here, or click to select</span>
+                        </div>
+                        <input type="file" id="image" accept="image/*" class="dropzone-file-input">
+                        <input type="text" id="item-img" aria-label="Emoji Icon" placeholder="Or use emoji 🍔" class="emoji-input-overlay" onclick="event.stopPropagation();">
                     </div>
-                    <img id="image-preview" style="display:none; max-width:120px; max-height:120px; margin-top:8px; border-radius:8px; object-fit:cover; border:2px solid var(--primary);" alt="Preview">
-                    <div id="upload-status" style="font-size:0.8rem; margin-top:5px; color:var(--primary);"></div>
+                    <div style="display:flex; justify-content:center;">
+                        <img id="image-preview" style="display:none; max-width:150px; max-height:150px; margin-top:15px; border-radius:12px; object-fit:cover; border:3px solid var(--primary); box-shadow:0 5px 15px rgba(0,0,0,0.3);" alt="Preview">
+                    </div>
+                    <div id="upload-status" style="font-size:0.9rem; margin-top:10px; color:var(--primary); text-align:center; font-weight:600;"></div>
                 </div>
                 <div class="form-group" style="display:flex; align-items:center; gap:10px;">
                     <input type="checkbox" id="item-available" checked style="width:auto; margin-bottom:0;">
